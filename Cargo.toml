@@ -1,0 +1,14 @@
+[package]
+name = "market"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serenity = "0.10"
+rfesi = "0.10.0"
+tokio = { version = "1.12", features = ["macros", "rt-multi-thread"]}
+dotenv = "0.15"
+ron = "0.7.0"
+serde = "1"
