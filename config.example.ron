@@ -1,0 +1,14 @@
+Config(
+    discord_token: "discord_token",
+    // oauth2_client_id: "6a29ffcaa12f4eacb206158144b6eb0c",
+    // oauth2_secret_key: "Ovr3KLZk0IshJv0CgBpUvOoyyA3ivtsXXNZ1jgIi",
+    base_url: "http://localhost/8080/",
+    callback_url: "http://localhost/8080/callback_url/",
+    port: 8080,
+    discord_client_id: 123_456,
+    discord_client_secret: "secretkey-abc",
+    discord_public_key: "bce123",
+    bot_permissions: 456_789,
+    esi_client_id: "123deadbeef",
+    esi_secret_key: "supersecretKey",
+)

@@ -14,7 +14,6 @@ pub struct Config {
     pub bot_permissions: u64,
     pub esi_client_id: String,
     pub esi_secret_key: String,
-    pub scopes: String,
 }
 
 impl Config {
