@@ -1,5 +1,5 @@
-use serenity::framework::standard::{CommandResult, macros::command};
-use serenity::client::{Context};
+use serenity::client::Context;
+use serenity::framework::standard::{macros::command, CommandResult};
 use serenity::model::channel::Message;
 
 #[command]

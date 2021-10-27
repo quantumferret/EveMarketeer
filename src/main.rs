@@ -1,17 +1,16 @@
 mod commands;
-mod eve;
 mod config;
+mod eve;
 
-use ron::ser::to_string_pretty;
-use commands::{ping::*};
+use commands::ping::*;
+use config::Config;
+use eve::esi;
 use serenity::client::{Client, Context, EventHandler};
+use serenity::framework::standard::{macros::group, StandardFramework};
 use serenity::{
     async_trait,
-    model::{gateway::Ready, event::ResumedEvent},
-    prelude::*
+    model::{event::ResumedEvent, gateway::Ready},
 };
-use serenity::framework::standard::{StandardFramework, macros::group};
-use config::Config;
 
 #[group]
 #[commands(ping)]
@@ -34,23 +33,44 @@ impl EventHandler for Handler {
 async fn main() {
     let config_path = format!("{}/config.ron", env!("CARGO_MANIFEST_DIR"));
     let config: Config = Config::new_from_ron_file(config_path);
-    let pretty = ron::ser::PrettyConfig::new();
-    let pretty_config = to_string_pretty(&config, pretty)
-        .expect("Prettification failed");
-    println!("{}", pretty_config);
     let framework = StandardFramework::new()
-        .configure(|c| c.prefix("/"))   // set prefix
+        .configure(|c| c.prefix("/")) // set prefix
         .group(&GENERAL_GROUP);
 
     // Login with bot token
-    let token = config.discord_token;
+    let token = config.discord_token.as_str();
     let mut client = Client::builder(&token)
         .event_handler(Handler)
         .framework(framework)
         .await
         .expect("Error creating client");
 
-    // start listening for events by starting as ingle shard
+    let evepraisal = eve::evepraisal::EvepraisalClient::new();
+
+    let esi = esi::EsiStruct::new();
+    let res = esi
+        .search_item("Rifter", true)
+        .await
+        .expect("Couldn't deserialize search result");
+    println!("{:?}", res);
+
+    let search_id = res.search_ids[0];
+    let type_info = esi
+        .get_type_information(search_id)
+        .await
+        .expect("Couldn't deserialize universe/type/{search_id} response");
+
+    println!("{}", serde_json::to_string_pretty(&type_info).unwrap());
+
+    let name = type_info["name"].as_str().unwrap();
+
+    let appraisal = evepraisal
+        .create_appraisal(name, search_id)
+        .await
+        .expect("Couldn't deserialize evepraisal create_appraisal response");
+    println!("{}", serde_json::to_string_pretty(&appraisal).unwrap());
+
+    // start listening for events by starting as single shard
     if let Err(why) = client.start().await {
         println!("Client error: {:?}", why);
     }
