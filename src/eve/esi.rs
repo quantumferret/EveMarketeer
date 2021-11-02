@@ -38,9 +38,7 @@ impl EsiStruct {
             .default_headers(headers)
             .build()
             .unwrap();
-        EsiStruct {
-            client,
-        }
+        EsiStruct { client }
     }
 
     pub async fn search_item(
@@ -63,8 +61,7 @@ impl EsiStruct {
                 ("strict", strict),
             ])
             .send()
-            .await
-            .unwrap()
+            .await?
             .json::<SearchResult>()
             .await
     }
@@ -75,8 +72,7 @@ impl EsiStruct {
             .get(endpoint)
             .query(&[("datasource", "tranquility"), ("language", "en")])
             .send()
-            .await
-            .unwrap()
+            .await?
             .json::<Value>()
             .await
     }
