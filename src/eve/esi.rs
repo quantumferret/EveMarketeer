@@ -1,9 +1,8 @@
 use reqwest::{header, Client};
 use serde::Deserialize;
-use serde_json::Value;
 use std::time::Duration;
 
-const BASE_URL: &str = "https://esi.evetech.net/";
+const SEARCH_ENDPOINT: &str = "https://esi.evetech.net/latest/search/";
 
 #[derive(Deserialize, Debug)]
 pub struct SearchResult {
@@ -46,34 +45,18 @@ impl EsiStruct {
         search: &str,
         is_strict: bool,
     ) -> reqwest::Result<SearchResult> {
-        let strict = match is_strict {
-            true => "true",
-            false => "false",
-        };
-        let endpoint = format!("{}{}{}", BASE_URL, "latest", "/search/");
         self.client
-            .get(endpoint)
+            .get(SEARCH_ENDPOINT)
             .query(&[
                 ("categories", "inventory_type"),
                 ("datasource", "tranquility"),
                 ("language", "en"),
                 ("search", search),
-                ("strict", strict),
+                ("strict", &is_strict.to_string()),
             ])
             .send()
             .await?
             .json::<SearchResult>()
-            .await
-    }
-
-    pub async fn get_type_information(&self, type_id: i32) -> reqwest::Result<Value> {
-        let endpoint = format!("{}{}{}{}/", BASE_URL, "latest", "/universe/types/", type_id);
-        self.client
-            .get(endpoint)
-            .query(&[("datasource", "tranquility"), ("language", "en")])
-            .send()
-            .await?
-            .json::<Value>()
             .await
     }
 }

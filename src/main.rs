@@ -24,6 +24,7 @@ use serenity::{
     model::{event::ResumedEvent, gateway::Ready},
 };
 use thousands::Separable;
+use crate::eve::evepraisal::Item;
 
 #[group]
 #[commands(ping, price, item)]
@@ -89,26 +90,20 @@ pub async fn price(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
         )
         .await?;
 
-    let search_id = res.search_ids[0];
-    let type_info = ESI.get_type_information(search_id).await?;
+    let msg = if res.search_ids.len() > 0 {
+        let search_id = res.search_ids[0];
+        let market = parsed.get(&"market").unwrap();
+        let appraisal = &EP
+            .create_appraisal(market, search_id)
+            .await?
+            .appraisal;
+        let items = &appraisal.items;
+        let item = &items[0];
 
-    let name = type_info["name"].as_str();
-    let market = *parsed.get(&"market").ok_or_else(|| "jita")?;
-
-    let appraisal = &EP
-        .create_appraisal(
-            name.unwrap_or_default(),
-            market.to_lowercase().as_str(),
-            search_id,
-        )
-        .await?["appraisal"];
-
-    let items = appraisal["items"].as_array();
-    let msg = match items {
-        None => error_reply(ctx, msg).await,
-        Some(items) => price_reply(search_id, market, &items[0], ctx, msg).await,
+        price_reply(item.type_id, &appraisal.market_name, item, ctx, msg).await
+    } else {
+        error_reply(ctx, msg).await
     };
-    // let msg = price_reply(search_id, market, appraisal, ctx, msg).await;
 
     Ok(())
 }
@@ -121,15 +116,15 @@ pub async fn item(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 async fn price_reply(
     type_id: i32,
     market_name: &str,
-    item: &serde_json::Value,
+    item: &Item,
     ctx: &Context,
     msg: &Message,
 ) -> serenity::Result<Message> {
     let sell_min: Content = Code
-        + (round(item["prices"]["sell"]["min"].as_f64().unwrap(), 2).separate_with_commas()
+        + (round(item.prices.sell.min, 2).separate_with_commas()
             + " ISK");
     let sell_avg: Content = Code
-        + (round(item["prices"]["sell"]["avg"].as_f64().unwrap(), 2).separate_with_commas()
+        + (round(item.prices.sell.avg, 2).separate_with_commas()
             + " ISK");
     let sell_field = format!(
         "• Lowest: {}\n• Average: {}",
@@ -138,10 +133,10 @@ async fn price_reply(
     );
 
     let buy_max: Content = Code
-        + (round(item["prices"]["buy"]["max"].as_f64().unwrap(), 2).separate_with_commas()
+        + (round(item.prices.buy.max, 2).separate_with_commas()
             + " ISK");
     let buy_avg: Content = Code
-        + (round(item["prices"]["buy"]["avg"].as_f64().unwrap(), 2).separate_with_commas()
+        + (round(item.prices.buy.avg, 2).separate_with_commas()
             + " ISK");
     let buy_field = format!(
         "• Highest: {}\n• Average: {}",
@@ -150,7 +145,7 @@ async fn price_reply(
     );
 
     let mut author = serenity::builder::CreateEmbedAuthor::default();
-    author.name(item["name"].as_str().unwrap());
+    author.name(&item.type_name);
     author.icon_url("https://data.saturnserver.org/eve/Icons/UI/WindowIcons/wallet.png");
 
     msg.channel_id
@@ -165,8 +160,8 @@ async fn price_reply(
                 e.field(
                     format!(
                         "Sell ( {} orders, {} items )",
-                        item["prices"]["sell"]["order_count"].as_u64().unwrap(),
-                        item["prices"]["sell"]["volume"].as_u64().unwrap()
+                        &item.prices.sell.order_count.separate_with_commas(),
+                        &item.prices.sell.volume.separate_with_commas(),
                     ),
                     sell_field,
                     false,
@@ -174,8 +169,8 @@ async fn price_reply(
                 e.field(
                     format!(
                         "Buy ( {} orders, {} items )",
-                        item["prices"]["buy"]["order_count"].as_u64().unwrap(),
-                        item["prices"]["buy"]["volume"].as_u64().unwrap()
+                        &item.prices.buy.order_count.separate_with_commas(),
+                        &item.prices.buy.volume.separate_with_commas(),
                     ),
                     buy_field,
                     false,
